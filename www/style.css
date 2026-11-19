@@ -1,0 +1,65 @@
+:root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --primary: #3b82f6;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+
+body { background: var(--bg); color: var(--text); padding: 16px; }
+
+.app-container { max-width: 480px; margin: 0 auto; }
+
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+header h1 { font-size: 1.25rem; font-weight: 700; }
+
+.icon-btn { background: var(--card); border: 1px solid #334155; color: var(--text); padding: 8px 12px; border-radius: 10px; font-size: 1.1rem; }
+
+.card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 1px solid #334155; }
+
+label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; }
+
+textarea, input, select {
+    width: 100%; background: #0f172a; border: 1px solid #334155; color: var(--text);
+    padding: 12px; border-radius: 10px; font-size: 0.95rem; margin-bottom: 12px;
+}
+
+.row { display: flex; gap: 8px; }
+.row select { flex: 1; margin-bottom: 0; }
+.row button { flex: 1; }
+
+.primary-btn {
+    background: var(--primary); color: white; border: none; padding: 12px;
+    border-radius: 10px; font-weight: 600; cursor: pointer;
+}
+
+.secondary-btn {
+    width: 100%; background: #334155; color: var(--text); border: none;
+    padding: 10px; border-radius: 10px; margin-top: 10px; font-weight: 500;
+}
+
+#generatedImage { width: 100%; border-radius: 12px; margin-top: 8px; display: block; }
+
+.script-box { white-space: pre-wrap; font-size: 0.9rem; line-height: 1.5; color: #e2e8f0; margin-top: 8px; }
+
+.hidden { display: none !important; }
+
+/* Modal */
+.modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+}
+.modal-content { background: var(--card); padding: 20px; border-radius: 16px; width: 100%; max-width: 400px; }
+.modal-content p { font-size: 0.85rem; color: var(--muted); margin: 8px 0 12px; }
+.modal-actions { display: flex; gap: 8px; }
+.modal-actions button { flex: 1; margin-top: 0; }
+
+/* Spinner */
+#loading { text-align: center; padding: 24px; color: var(--muted); }
+.spinner {
+    width: 32px; height: 32px; border: 3px solid #334155; border-top-color: var(--primary);
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

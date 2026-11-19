@@ -1,5 +1,9 @@
 const apiKeyInput = document.getElementById('apiKeyInput');
 const settingsModal = document.getElementById('settingsModal');
+const logContainer = document.getElementById('logContainer');
+const progressBar = document.getElementById('progressBar');
+const loadingText = document.getElementById('loadingText');
+
 let finalVideoBlobUrl = null;
 let finalVideoExt = 'mp4';
 
@@ -15,10 +19,59 @@ document.getElementById('btnSaveKey').onclick = () => {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Fungsi merender 1 klip video menggunakan Google Veo 3
-async function renderSingleVeo3Clip(promptText, apiKey, sceneIndex, totalScenes, loadingEl) {
+// Helper mencatat log secara real-time ke kotak terminal di layar
+function addLog(message, type = 'info', percent = null) {
+    const now = new Date();
+    const timeStr = now.toTimeString().split(' ')[0];
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+
+    let colorClass = '';
+    if (type === 'error') colorClass = 'log-err';
+    if (type === 'success') colorClass = 'log-ok';
+
+    div.innerHTML = `<span class="log-time">[${timeStr}]</span><span class="${colorClass}">${message}</span>`;
+    logContainer.appendChild(div);
+    logContainer.scrollTop = logContainer.scrollHeight;
+
+    if (percent !== null) {
+        progressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+    }
+}
+
+// Deteksi otomatis nama model Veo yang aktif pada API Key pengguna
+async function detectAvailableVeoModel(apiKey) {
+    addLog('Memeriksa daftar model video Veo pada API Key...', 'info', 8);
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    const data = await res.json();
+    if (data.error) throw new Error(`Gagal mengecek daftar model: ${data.error.message}`);
+
+    const models = data.models || [];
+    const veoModels = models.filter(m =>
+        m.name.toLowerCase().includes('veo') &&
+        Array.isArray(m.supportedGenerationMethods) &&
+        m.supportedGenerationMethods.includes('predictLongRunning')
+    );
+
+    if (veoModels.length === 0) {
+        throw new Error(
+            'API Key belum memiliki akses model Veo (pastikan Billing Google Cloud sudah tertaut di Google AI Studio).'
+        );
+    }
+
+    const veo3 = veoModels.find(m => m.name.includes('veo-3'));
+    const chosen = (veo3 ? veo3.name : veoModels[0].name).replace('models/', '');
+    addLog(`Model video aktif terdeteksi: ${chosen}`, 'success', 15);
+    return chosen;
+}
+
+// Merender 1 klip video menggunakan model Veo yang terdeteksi
+async function renderSingleVeoClip(modelName, promptText, apiKey, sceneIndex, totalScenes, basePercent, slicePercent) {
+    addLog(`Mengirim Adegan ${sceneIndex}/${totalScenes} ke server ${modelName}...`, 'info', basePercent);
+    addLog(`Prompt Adegan ${sceneIndex}: "${promptText.substring(0, 75)}..."`, 'info');
+
     const startRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/veo-3.0-generate-preview:predictLongRunning?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predictLongRunning?key=${apiKey}`,
         {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -34,15 +87,19 @@ async function renderSingleVeo3Clip(promptText, apiKey, sceneIndex, totalScenes,
 
     const startData = await startRes.json();
     if (startData.error) {
-        throw new Error(`Veo 3 Error (Adegan ${sceneIndex}): ${startData.error.message}`);
+        throw new Error(`Veo Error (Adegan ${sceneIndex}): ${startData.error.message}`);
     }
 
     const operationName = startData.name;
-    let videoUri = null;
+    addLog(`Tugas diterima server (ID: ...${operationName.slice(-10)}). Mulai merender...`, 'info');
 
-    // Polling status setiap 5 detik (maksimal 3 menit per adegan)
+    let videoUri = null;
     for (let i = 1; i <= 36; i++) {
-        loadingEl.textContent = `Merender Adegan ${sceneIndex}/${totalScenes} di Veo 3... (${i * 5} dtk)`;
+        const elapsed = i * 5;
+        const currentProgress = basePercent + Math.min(slicePercent * 0.85, (i / 18) * (slicePercent * 0.85));
+        loadingText.textContent = `Merender Adegan ${sceneIndex}/${totalScenes}... (${elapsed} dtk)`;
+        addLog(`Adegan ${sceneIndex}/${totalScenes}: Server sedang merender frame (${elapsed} detik berjalan)...`, 'info', currentProgress);
+
         await sleep(5000);
 
         const checkRes = await fetch(
@@ -58,22 +115,29 @@ async function renderSingleVeo3Clip(promptText, apiKey, sceneIndex, totalScenes,
     }
 
     if (!videoUri) {
-        throw new Error(`Render Adegan ${sceneIndex} melebihi batas waktu.`);
+        throw new Error(`Render Adegan ${sceneIndex} melebihi batas waktu (3 menit).`);
     }
 
-    loadingEl.textContent = `Mengunduh klip Adegan ${sceneIndex}/${totalScenes}...`;
+    loadingText.textContent = `Mengunduh klip Adegan ${sceneIndex}/${totalScenes}...`;
+    addLog(`Adegan ${sceneIndex}/${totalScenes} selesai dirender! Mengunduh file MP4...`, 'success', basePercent + slicePercent * 0.9);
+
     const mp4Res = await fetch(`${videoUri}&key=${apiKey}`);
-    return await mp4Res.blob();
+    const blob = await mp4Res.blob();
+    addLog(`Klip Adegan ${sceneIndex} berhasil diunduh (${(blob.size / 1024 / 1024).toFixed(2)} MB).`, 'success', basePercent + slicePercent);
+    return blob;
 }
 
-// Menggabungkan beberapa Blob MP4 menjadi 1 video utuh menggunakan Canvas + MediaRecorder
-async function mergeVideoBlobs(blobs, loadingEl) {
+// Menggabungkan beberapa Blob MP4 menjadi 1 video utuh
+async function mergeVideoBlobs(blobs) {
     if (blobs.length === 1) {
         finalVideoExt = 'mp4';
+        addLog('Hanya 1 adegan, langsung menyiapkan pemutar video...', 'success', 98);
         return URL.createObjectURL(blobs[0]);
     }
 
-    loadingEl.textContent = 'Menggabungkan semua adegan menjadi 1 video utuh...';
+    loadingText.textContent = 'Menggabungkan semua adegan menjadi 1 video...';
+    addLog(`Menggabungkan ${blobs.length} klip menjadi 1 video utuh 9:16...`, 'info', 92);
+
     const canvas = document.getElementById('mergeCanvas');
     const ctx = canvas.getContext('2d');
     const player = document.getElementById('hiddenPlayer');
@@ -96,6 +160,7 @@ async function mergeVideoBlobs(blobs, loadingEl) {
     recorder.start();
 
     for (let i = 0; i < blobs.length; i++) {
+        addLog(`Menyambung klip adegan ${i + 1} dari ${blobs.length}...`, 'info', 92 + ((i + 1) / blobs.length) * 6);
         const clipUrl = URL.createObjectURL(blobs[i]);
         await new Promise((resolveClip) => {
             player.src = clipUrl;
@@ -116,7 +181,9 @@ async function mergeVideoBlobs(blobs, loadingEl) {
     }
 
     recorder.stop();
-    return await mergeFinished;
+    const finalUrl = await mergeFinished;
+    addLog('Penggabungan seluruh video selesai!', 'success', 100);
+    return finalUrl;
 }
 
 document.getElementById('btnGenerate').onclick = async () => {
@@ -124,7 +191,6 @@ document.getElementById('btnGenerate').onclick = async () => {
     const style = document.getElementById('styleSelect').value;
     const sceneCount = parseInt(document.getElementById('sceneCountSelect').value, 10);
     const apiKey = localStorage.getItem('gemini_api_key');
-    const loadingText = document.getElementById('loadingText');
 
     if (!topic) return alert('Isi ide cerita video terlebih dahulu.');
     if (!apiKey) {
@@ -132,14 +198,26 @@ document.getElementById('btnGenerate').onclick = async () => {
         return alert('Masukkan Gemini API Key Anda terlebih dahulu.');
     }
 
+    // Reset tampilan log & progress bar
+    logContainer.innerHTML = '';
+    progressBar.style.width = '3%';
     document.getElementById('loading').classList.remove('hidden');
     document.getElementById('resultArea').classList.add('hidden');
+    document.getElementById('btnGenerate').disabled = true;
 
     try {
+        addLog('Memulai proses produksi video AI...', 'info', 5);
+
+        // 0. Deteksi model Veo
+        loadingText.textContent = 'Mendeteksi model Veo aktif...';
+        const activeVeoModel = await detectAvailableVeoModel(apiKey);
+
         // 1. Pecah cerita menjadi N adegan konsisten menggunakan Gemini
-        loadingText.textContent = `Menyusun skenario ${sceneCount} adegan konsisten...`;
-        const storyboardPrompt = `Pecah ide cerita berikut menjadi ${sceneCount} adegan video berurutan yang saling menyambung untuk generator video AI (Veo 3).
-        Pastikan deskripsi karakter utama selalu sama di setiap adegan agar konsisten.
+        loadingText.textContent = `Menyusun skenario ${sceneCount} adegan...`;
+        addLog(`Meminta Gemini memecah cerita menjadi ${sceneCount} adegan konsisten...`, 'info', 18);
+
+        const storyboardPrompt = `Pecah ide cerita berikut menjadi ${sceneCount} adegan video berurutan yang saling menyambung untuk generator video AI (Veo).
+        Pastikan deskripsi karakter utama selalu sama di setiap adegan agar konsisten. Sertakan juga instruksi suara/dialog jika ada.
         Ide: "${topic}"
         Gaya visual wajib: "${style}"
         
@@ -147,7 +225,7 @@ document.getElementById('btnGenerate').onclick = async () => {
         {
           "caption": "Naskah narasi & caption lengkap bahasa Indonesia beserta hashtag",
           "scenes": [
-            "Detailed English video prompt for scene 1 including character action, facial expression, camera movement, and ${style}",
+            "Detailed English video prompt for scene 1 including character action, facial expression, lip-sync dialogue/audio cues, camera movement, and ${style}",
             "Detailed English video prompt for scene 2..."
           ]
         }`;
@@ -157,6 +235,7 @@ document.getElementById('btnGenerate').onclick = async () => {
         let lastErr = '';
 
         for (const model of geminiModels) {
+            addLog(`Menghubungi model naskah: ${model}...`, 'info');
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -165,9 +244,11 @@ document.getElementById('btnGenerate').onclick = async () => {
             const json = await res.json();
             if (!json.error && json.candidates) {
                 storyData = json;
+                addLog(`Skenario berhasil dibuat menggunakan ${model}.`, 'success', 25);
                 break;
             }
             lastErr = json.error ? json.error.message : 'Gagal menyusun skenario';
+            addLog(`Model ${model} sibuk, beralih ke cadangan...`, 'error');
         }
 
         if (!storyData) throw new Error(lastErr);
@@ -176,31 +257,42 @@ document.getElementById('btnGenerate').onclick = async () => {
         const parsedStory = JSON.parse(rawJson);
         const scenePrompts = parsedStory.scenes.slice(0, sceneCount);
 
-        // 2. Render setiap adegan secara berurutan di Veo 3
+        // 2. Render setiap adegan secara berurutan (rentang progress 25% s/d 90%)
         const renderedBlobs = [];
+        const totalRenderSpan = 65; // 25% -> 90%
+        const perSceneSpan = totalRenderSpan / scenePrompts.length;
+
         for (let i = 0; i < scenePrompts.length; i++) {
-            const blob = await renderSingleVeo3Clip(
+            const basePct = 25 + (i * perSceneSpan);
+            const blob = await renderSingleVeoClip(
+                activeVeoModel,
                 scenePrompts[i],
                 apiKey,
                 i + 1,
                 scenePrompts.length,
-                loadingText
+                basePct,
+                perSceneSpan
             );
             renderedBlobs.push(blob);
         }
 
         // 3. Gabungkan semua klip menjadi 1 video utuh
         if (finalVideoBlobUrl) URL.revokeObjectURL(finalVideoBlobUrl);
-        finalVideoBlobUrl = await mergeVideoBlobs(renderedBlobs, loadingText);
+        finalVideoBlobUrl = await mergeVideoBlobs(renderedBlobs);
+
+        loadingText.textContent = 'Selesai! Video siap diputar & disimpan.';
+        addLog('PROSES SELESAI! Silakan putar atau simpan video ke galeri.', 'success', 100);
 
         document.getElementById('videoPreview').src = finalVideoBlobUrl;
         document.getElementById('scriptOutput').textContent = parsedStory.caption;
         document.getElementById('resultArea').classList.remove('hidden');
 
     } catch (err) {
+        loadingText.textContent = 'Proses terhenti karena kesalahan.';
+        addLog(`ERROR: ${err.message}`, 'error');
         alert('Terjadi kesalahan: ' + err.message);
     } finally {
-        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('btnGenerate').disabled = false;
     }
 };
 
@@ -208,7 +300,7 @@ document.getElementById('btnDownloadVideo').onclick = () => {
     if (!finalVideoBlobUrl) return;
     const a = document.createElement('a');
     a.href = finalVideoBlobUrl;
-    a.download = `Veo3-Video-${Date.now()}.${finalVideoExt}`;
+    a.download = `Veo-Video-${Date.now()}.${finalVideoExt}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

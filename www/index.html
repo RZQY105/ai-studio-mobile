@@ -3,41 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Studio Mobile</title>
+    <title>AI Veo 3 Studio</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-container">
         <header>
-            <h1>AI Content Studio</h1>
+            <h1>AI Veo 3 Studio</h1>
             <button id="btnSettings" class="icon-btn">⚙️</button>
         </header>
 
         <main id="mainContent">
             <div class="card">
-                <label for="topicInput">Ide Konten / Topik Video</label>
-                <textarea id="topicInput" rows="3" placeholder="Contoh: Tips styling rambut pria agar tahan lama..."></textarea>
+                <label for="topicInput">Ide Cerita / Prompt Video</label>
+                <textarea id="topicInput" rows="3" placeholder="Contoh: Cerita lucu tukang cukur salah potong rambut pelanggan..."></textarea>
                 
-                <div class="row">
+                <div class="row" style="margin-bottom: 10px;">
                     <select id="styleSelect">
-                        <option value="cinematic">Gaya: Sinematik</option>
-                        <option value="3d-animation">Gaya: Animasi 3D</option>
-                        <option value="realistic">Gaya: Realistis</option>
+                        <option value="2d stickman cartoon animation, clean white background, bold black outlines, expressive facial expressions">Gaya: Animasi Stickman 2D</option>
+                        <option value="3d pixar style animation, vibrant lighting, expressive characters">Gaya: Animasi 3D</option>
+                        <option value="cinematic realistic video, 4k, natural lighting">Gaya: Sinematik Realistis</option>
+                        <option value="modern anime style animation, clean lineart">Gaya: Anime</option>
                     </select>
-                    <button id="btnGenerate" class="primary-btn">Buat Konten ✨</button>
+                </div>
+
+                <div class="row">
+                    <select id="sceneCountSelect">
+                        <option value="1">Durasi: 1 Adegan (~8 dtk)</option>
+                        <option value="2">Durasi: 2 Adegan (~16 dtk)</option>
+                        <option value="3" selected>Durasi: 3 Adegan (~24 dtk)</option>
+                        <option value="4">Durasi: 4 Adegan (~32 dtk)</option>
+                    </select>
+                    <button id="btnGenerate" class="primary-btn">Render Veo 3 🎬</button>
                 </div>
             </div>
 
             <div id="loading" class="hidden">
                 <div class="spinner"></div>
-                <p>Meracik naskah & visual AI...</p>
+                <p id="loadingText">Menyiapkan proyek Veo 3...</p>
             </div>
 
             <div id="resultArea" class="hidden">
                 <div class="card">
-                    <h3>Visual Preview</h3>
-                    <img id="generatedImage" src="" alt="AI Visual" />
-                    <button id="btnDownloadImg" class="secondary-btn">Simpan Gambar</button>
+                    <h3>Hasil Video Utuh (9:16)</h3>
+                    <video id="videoPreview" controls playsinline loop style="width:100%; border-radius:12px; margin-top:8px; background:#000;"></video>
+                    <button id="btnDownloadVideo" class="primary-btn" style="width:100%; margin-top:10px;">Simpan Video ke Galeri ⬇️</button>
                 </div>
 
                 <div class="card">
@@ -48,11 +58,15 @@
             </div>
         </main>
 
+        <!-- Elemen tersembunyi untuk menggabungkan klip multi-adegan -->
+        <canvas id="mergeCanvas" width="720" height="1280" class="hidden"></canvas>
+        <video id="hiddenPlayer" playsinline muted class="hidden"></video>
+
         <!-- Modal Pengaturan API Key -->
         <div id="settingsModal" class="modal hidden">
             <div class="modal-content">
-                <h3>Pengaturan API Resmi</h3>
-                <p>Masukkan Gemini API Key gratis dari Google AI Studio:</p>
+                <h3>Pengaturan API Veo 3</h3>
+                <p>Masukkan Gemini API Key dengan Billing aktif (Google Cloud):</p>
                 <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
                 <div class="modal-actions">
                     <button id="btnSaveKey" class="primary-btn">Simpan</button>

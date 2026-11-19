@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Studio Mobile</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>AI Content Studio</h1>
+            <button id="btnSettings" class="icon-btn">⚙️</button>
+        </header>
+
+        <main id="mainContent">
+            <div class="card">
+                <label for="topicInput">Ide Konten / Topik Video</label>
+                <textarea id="topicInput" rows="3" placeholder="Contoh: Tips styling rambut pria agar tahan lama..."></textarea>
+                
+                <div class="row">
+                    <select id="styleSelect">
+                        <option value="cinematic">Gaya: Sinematik</option>
+                        <option value="3d-animation">Gaya: Animasi 3D</option>
+                        <option value="realistic">Gaya: Realistis</option>
+                    </select>
+                    <button id="btnGenerate" class="primary-btn">Buat Konten ✨</button>
+                </div>
+            </div>
+
+            <div id="loading" class="hidden">
+                <div class="spinner"></div>
+                <p>Meracik naskah & visual AI...</p>
+            </div>
+
+            <div id="resultArea" class="hidden">
+                <div class="card">
+                    <h3>Visual Preview</h3>
+                    <img id="generatedImage" src="" alt="AI Visual" />
+                    <button id="btnDownloadImg" class="secondary-btn">Simpan Gambar</button>
+                </div>
+
+                <div class="card">
+                    <h3>Naskah & Caption</h3>
+                    <div id="scriptOutput" class="script-box"></div>
+                    <button id="btnCopyScript" class="secondary-btn">Salin Naskah</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modal Pengaturan API Key -->
+        <div id="settingsModal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Pengaturan API Resmi</h3>
+                <p>Masukkan Gemini API Key gratis dari Google AI Studio:</p>
+                <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
+                <div class="modal-actions">
+                    <button id="btnSaveKey" class="primary-btn">Simpan</button>
+                    <button id="btnCloseModal" class="secondary-btn">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

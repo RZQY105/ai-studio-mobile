@@ -30,7 +30,7 @@ document.getElementById('btnGenerate').onclick = async () => {
         const prompt = `Buatkan naskah video pendek (Reels/TikTok) bahasa Indonesia tentang: "${topic}". 
         Berikan juga 1 baris deskripsi visual dalam bahasa Inggris di baris paling akhir dengan format: IMAGE_PROMPT: [deskripsi visual detail gaya ${style}]`;
 
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })

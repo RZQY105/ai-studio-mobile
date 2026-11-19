@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Veo 3 Studio</title>
+    <title>AI Studio Video</title>
     <link rel="stylesheet" href="style.css">
     <style>
         .progress-bar-bg {
@@ -12,7 +12,7 @@
             border: 1px solid #334155;
         }
         .progress-bar-fill {
-            height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #06b6d4);
+            height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #10b981);
             transition: width 0.4s ease;
         }
         .log-box {
@@ -30,32 +30,32 @@
 <body>
     <div class="app-container">
         <header>
-            <h1>AI Veo 3 Studio</h1>
+            <h1>AI Video Studio</h1>
             <button id="btnSettings" class="icon-btn">⚙️</button>
         </header>
 
         <main id="mainContent">
             <div class="card">
                 <label for="topicInput">Ide Cerita / Prompt Video</label>
-                <textarea id="topicInput" rows="3" placeholder="Contoh: Cerita lucu tukang cukur salah potong rambut pelanggan..."></textarea>
+                <textarea id="topicInput" rows="3" placeholder="Contoh: Budi stickman panik karena panci mie instannya meledak di dapur..."></textarea>
                 
                 <div class="row" style="margin-bottom: 10px;">
                     <select id="styleSelect">
-                        <option value="2d stickman cartoon animation, clean white background, bold black outlines, expressive facial expressions">Gaya: Animasi Stickman 2D</option>
-                        <option value="3d pixar style animation, vibrant lighting, expressive characters">Gaya: Animasi 3D</option>
-                        <option value="cinematic realistic video, 4k, natural lighting">Gaya: Sinematik Realistis</option>
-                        <option value="modern anime style animation, clean lineart">Gaya: Anime</option>
+                        <option value="2d stickman cartoon animation, clean white background, bold black outlines, expressive facial expressions, funny slapstick motion">Gaya: Animasi Stickman 2D</option>
+                        <option value="3d pixar style animation, vibrant lighting, expressive characters, smooth motion">Gaya: Animasi 3D</option>
+                        <option value="cinematic realistic video, 4k, natural lighting, dynamic camera">Gaya: Sinematik Realistis</option>
+                        <option value="modern anime style animation, clean lineart, vibrant colors">Gaya: Anime</option>
                     </select>
                 </div>
 
                 <div class="row">
                     <select id="sceneCountSelect">
-                        <option value="1">Durasi: 1 Adegan (~8 dtk)</option>
-                        <option value="2">Durasi: 2 Adegan (~16 dtk)</option>
-                        <option value="3" selected>Durasi: 3 Adegan (~24 dtk)</option>
-                        <option value="4">Durasi: 4 Adegan (~32 dtk)</option>
+                        <option value="1" selected>Durasi: 1 Adegan (~5 dtk)</option>
+                        <option value="2">Durasi: 2 Adegan (~10 dtk)</option>
+                        <option value="3">Durasi: 3 Adegan (~15 dtk)</option>
+                        <option value="4">Durasi: 4 Adegan (~20 dtk)</option>
                     </select>
-                    <button id="btnGenerate" class="primary-btn">Render Veo 3 🎬</button>
+                    <button id="btnGenerate" class="primary-btn">Render Video 🎬</button>
                 </div>
             </div>
 
@@ -71,7 +71,7 @@
 
             <div id="resultArea" class="hidden">
                 <div class="card">
-                    <h3>Hasil Video Utuh (9:16)</h3>
+                    <h3>Hasil Video (9:16)</h3>
                     <video id="videoPreview" controls playsinline loop style="width:100%; border-radius:12px; margin-top:8px; background:#000;"></video>
                     <button id="btnDownloadVideo" class="primary-btn" style="width:100%; margin-top:10px;">Simpan Video ke Galeri ⬇️</button>
                 </div>
@@ -91,11 +91,22 @@
         <!-- Modal Pengaturan API Key -->
         <div id="settingsModal" class="modal hidden">
             <div class="modal-content">
-                <h3>Pengaturan API Veo 3</h3>
-                <p>Masukkan Gemini API Key dengan Billing aktif (Google Cloud):</p>
-                <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
-                <div class="modal-actions">
-                    <button id="btnSaveKey" class="primary-btn">Simpan</button>
+                <h3>Pengaturan API Key</h3>
+                
+                <label style="margin-top: 10px;">1. Gemini API Key (Untuk Skenario Gratis):</label>
+                <input type="password" id="geminiKeyInput" placeholder="AIzaSy..." />
+
+                <label>2. SiliconFlow API Key (Untuk Render Video):</label>
+                <input type="password" id="sfKeyInput" placeholder="sk-..." />
+
+                <label>Server Region SiliconFlow:</label>
+                <select id="sfRegionSelect">
+                    <option value="https://api.siliconflow.com">Global (siliconflow.com)</option>
+                    <option value="https://api.siliconflow.cn">China (siliconflow.cn)</option>
+                </select>
+
+                <div class="modal-actions" style="margin-top: 8px;">
+                    <button id="btnSaveKey" class="primary-btn">Simpan Semua</button>
                     <button id="btnCloseModal" class="secondary-btn">Tutup</button>
                 </div>
             </div>
